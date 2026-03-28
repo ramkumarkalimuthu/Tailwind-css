@@ -1,5 +1,7 @@
 const api_url = 'https://restcountries.com/v3/all?fields=name,flags,population,region,capital,timezones,languages,'
-const itemsperpage = 4;
+let allData = [];      // full API data
+let filteredData = []; // after search
+const itemsperpage = 8;
 let currentpage = 1;
 let items = [];
 
@@ -8,7 +10,14 @@ async function fetchData() {
         const response = await fetch(api_url);
         items = await response.json();
         //console.log(items);
+        allData = items.slice(0, 250); // simulate 250 records
+        filteredData = [...allData];
+         console.log(filteredData);
+
         displayitem();
+        updatepaginationbutton();
+        
+        
     }
     catch (error) {
 
@@ -22,12 +31,12 @@ async function fetchData() {
 function displayitem() {
     const start = (currentpage - 1) * itemsperpage;
     const end = start + itemsperpage;
-    const paginateditem = items.slice(start, end);
+    const paginateditem = filteredData.slice(start, end);
     const card = document.getElementById('card_item');
     card.innerHTML = paginateditem.map((item) => {
         return `<div class="border shadow-2xl bg-white rounded-2xl cards"  data-item="${item.name.common}">
 
-        <img src="${item.flags[0]}" class="rounded-t-2xl object-cover w-[306px] h-[206px]"  alt="${item.name.common}">
+        <img src="${item.flags[0]}" class="rounded-t-2xl object-cover w-[306px] h-[206px] sm:w-[350px]"  alt="${item.name.common}">
 
         <div class="font-nunito p-4" id="card_body">
           <h1 class="font-bold text-blue900 text-xl" id="country-name"  data-item="${item.name.common}">${item.name.common}</h1>
@@ -39,22 +48,15 @@ function displayitem() {
 
       </div>`
     }).join("");
-
-    updatepaginationbutton();
+   
+ updateEntryInfo();
+   
     
 
 }
 
 function updatepaginationbutton() {
-    const totalpages = Math.ceil(items.length / itemsperpage);
-    const showtotalpage = document.getElementById("totalpage_content");
-    showtotalpage.innerText = totalpages;
-    const showstartpage = document.getElementById("start_page");
-
-    showstartpage.innerText = currentpage;
-
-    const showendpage = document.getElementById("end_page");
-    showendpage.innerText = itemsperpage;
+    const totalpages = Math.ceil(filteredData.length / itemsperpage);   
 
     const pagecontent = document.getElementById("page_button");
     pagecontent.innerHTML = "";
@@ -68,7 +70,9 @@ function updatepaginationbutton() {
         const pagebutton = document.createElement("button");
         pagebutton.textContent = i;
         if(i===currentpage){
-            pagebutton.className +="bg-blue950 "
+            pagebutton.className +=" bg-blue950 ";
+            
+
         }
         pagecontent.appendChild(pagebutton);
         pagebutton.onclick = () => goTopage(i);
@@ -77,8 +81,9 @@ function updatepaginationbutton() {
 
     const prevbtn= document.getElementById("prev");
     const nextbtn= document.getElementById("next");
-
-   if(prevbtn.disabled = currentpage === 1) 
+prevbtn.disabled = currentpage === 1;
+nextbtn.disabled = currentpage === totalpages;
+   if(prevbtn.disabled) 
    {    
     prevbtn.className += " cursor-not-allowed bg-grey400 opacity-25 ";
    }
@@ -91,7 +96,7 @@ function updatepaginationbutton() {
    }
        
 
-    if(nextbtn.disabled = currentpage === totalpages)
+    if(nextbtn.disabled)
     {    
         nextbtn.className += " cursor-not-allowed bg-grey400 opacity-25 ";
     } 
@@ -103,7 +108,7 @@ function updatepaginationbutton() {
         nextbtn.classList.remove('opacity-25');
         nextbtn.className += " bg-blue950 ";
     }
-        
+      
 
 }
 
@@ -111,44 +116,61 @@ function goTopage(page)
 {
     currentpage = page;
     displayitem();
+    updatepaginationbutton();
 }
 
 function prevpage(){
     if(currentpage>1){
         currentpage--;
         displayitem();
+         updatepaginationbutton();
     }
 
 }
 
 function nextpage(){
-    if(currentpage<Math.ceil(items.length / itemsperpage)){
+    if(currentpage<Math.ceil(filteredData.length / itemsperpage)){
         currentpage++;
         displayitem();
+        updatepaginationbutton();
     }
 }
 
-/*document.getElementById('search').addEventListener('keyup', (e)=> {
-    currentpage=1;
-    fetchData(e.target.value);
-
-});*/
 
 
-//console.log(cardcontent);
-const searchvalue = document.getElementById('search');
-searchvalue.addEventListener('keyup', (e) => {
- 
-    searchtext=e.target.value.toLowerCase().trim();
-    const cardcontent = document.querySelectorAll('.cards');
-    //console.log(cardcontent);
- cardcontent.forEach((carditems) => {
-   //console.log(carditems);
-   const carddata = carditems.dataset.item;
-   console.log(carddata);
- });
 
+// Search
+document.getElementById('search').addEventListener('input', function () {
+  const value = this.value.toLowerCase();
+
+  filteredData = allData.filter(item =>
+    item.name.common.toLowerCase().includes(value)
+  );
+
+  currentpage = 1; // FIXED
+  displayitem();
+  updatepaginationbutton();
+  // ADD THIS
 });
+
+
+
+function updateEntryInfo() {
+  const total = filteredData.length;
+
+  if (total === 0) {
+    document.getElementById('entryInfo').innerText = "No entries found";
+    return;
+  }
+
+  const start = (currentpage - 1) * itemsperpage + 1;
+  const end = Math.min(currentpage * itemsperpage, total);
+
+  document.getElementById('entryInfo').innerText =
+    `Showing ${start} to ${end} of ${total} entries`;
+   
+}
+
 
 
 fetchData();
